@@ -105,9 +105,14 @@ class Oauth {
 				}
 				// request access token
 				else {
-					$this->requestAccessToken();
-					unset($_SESSION[$this->_prefix]['token'], $_SESSION[$this->_prefix]['token_secret']);
-					return true;
+					if($_GET['oauth_token'] != $_SESSION[$this->_prefix]['token']){
+						unset($_SESSION[$this->_prefix]['token'], $_SESSION[$this->_prefix]['token_secret']);
+						return false;
+					} else {
+						$this->requestAccessToken();
+						unset($_SESSION[$this->_prefix]['token'], $_SESSION[$this->_prefix]['token_secret']);
+						return true;
+					}
 				}
 			}
 			// handle oauth 2.0 flow
@@ -119,9 +124,14 @@ class Oauth {
 				}
 				// request access token
 				else {
-					unset($_SESSION[$this->_prefix]['state']);
-					$this->requestAccessToken();
-					return true;
+					if($_GET['state'] != $_SESSION[$this->_prefix]['state']){
+						unset($_SESSION[$this->_prefix]['state']);
+						return false;
+					} else {
+						unset($_SESSION[$this->_prefix]['state']);
+						$this->requestAccessToken();
+						return true;
+					}
 				}
 			}
 		}
