@@ -75,6 +75,7 @@ class Oauth {
 		// show error when http_code is not 200
 		if($info['http_code'] != 200){
 			// mostly errors are thrown when a user has denied access
+			unset($_SESSION[$this->_prefix]);
 			throw new Exception($response);
 		}
 		
