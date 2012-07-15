@@ -6,6 +6,12 @@ class Oauth {
 	protected $_client_secret;
 	protected $_callback;
 	
+	protected $_access_token;
+	protected $_access_token_secret;
+	protected $_expires;
+	
+	protected $_scope;
+	
 	protected $_prefix;
 	protected $_authorize_url;
 	protected $_access_token_url;
@@ -15,6 +21,16 @@ class Oauth {
 		$this->_client_id = $client_id;
 		$this->_client_secret = $client_secret;
 		$this->_callback = $callback;
+	}
+	
+	public function setAccessToken($access_token, $access_token_secret = null, $expires = null){
+		$this->_access_token = $access_token;
+		$this->_access_token_secret = $access_token_secret;
+		$this->_expires = $expires;
+	}
+	
+	public function setScope(Array $scope){
+		$this->_scope = $scope;
 	}
 	
 	public function makeRequest($url, $method = 'GET', Array $parameters = array(), $returnType = 'json', $includeCallback = false, $includeVerifier = false){
@@ -91,11 +107,22 @@ class Oauth {
 		// check if current token has expired
 		if(isset($_SESSION[$this->_prefix]['expires']) && $_SESSION[$this->_prefix]['expires'] < time()){
 			unset($_SESSION[$this->_prefix]);
-			$this->authorize();
+			$this->authorize($this->_scope);
 			return false;
 		}
+		// return true if access token is found
+		if(isset($_SESSION[$this->_prefix]['access_token']) || (isset($this->_access_token) && strlen($this->_access_token) > 0)){
+			$this->_access_token = $_SESSION[$this->_prefix]['access_token'];
+			if(isset($_SESSION[$this->_prefix]['access_token_secret'])){
+				$this->_access_token_secret = $_SESSION[$this->_prefix]['access_token_secret'];
+			}
+			if(isset($_SESSION[$this->_prefix]['expires'])){
+				$this->_expires = $_SESSION[$this->_prefix]['expires'];
+			}
+			return true;
+		}
 		// authorize app if no token is found
-		if(!isset($_SESSION[$this->_prefix]['access_token'])){
+		if(!isset($this->_access_token) || strlen($this->_access_token) == 0){
 			// handle oauth 1.0 flow
 			if(isset($this->_request_token_url) && strlen($this->_request_token_url) > 0){
 				// request token and authorize app
@@ -120,7 +147,7 @@ class Oauth {
 			else {
 				// authorize app
 				if(!isset($_GET['state']) && !isset($_GET['code'])){
-					$this->authorize();
+					$this->authorize($this->_scope);
 					return false;
 				}
 				// request access token
@@ -135,10 +162,6 @@ class Oauth {
 					}
 				}
 			}
-		}
-		// return true if access token is found
-		if(isset($_SESSION[$this->_prefix]['access_token'])){
-			return true;
 		}
 	}
 	
@@ -234,8 +257,8 @@ class Oauth {
 	}
 	
 	private function getCompositeKey(){
-		if(isset($_SESSION[$this->_prefix]['access_token_secret'])){
-			$composite_key = rawurlencode($this->_client_secret) . '&' . rawurlencode($_SESSION[$this->_prefix]['access_token_secret']);
+		if(isset($this->_access_token_secret) && strlen($this->_access_token_secret) > 0){
+			$composite_key = rawurlencode($this->_client_secret) . '&' . rawurlencode($this->_access_token_secret);
 		} else if(isset($_SESSION[$this->_prefix]['token_secret'])){
 			$composite_key = rawurlencode($this->_client_secret) . '&' . rawurlencode($_SESSION[$this->_prefix]['token_secret']);
 		} else {
@@ -252,8 +275,8 @@ class Oauth {
 			'oauth_timestamp' => time(),
 			'oauth_version' => '1.0'
 		);
-		if(isset($_SESSION[$this->_prefix]['access_token'])){
-			$oauth['oauth_token'] = $_SESSION[$this->_prefix]['access_token'];
+		if(isset($this->_access_token)){
+			$oauth['oauth_token'] = $this->_access_token;
 		} else if(isset($_SESSION[$this->_prefix]['token'])){
 			$oauth['oauth_token'] = $_SESSION[$this->_prefix]['token'];
 		}
