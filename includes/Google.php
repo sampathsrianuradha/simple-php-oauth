@@ -8,8 +8,6 @@ class Google extends Oauth {
 	protected $_access_token_url = 'https://accounts.google.com/o/oauth2/token';
 	
 	protected function authorize(Array $scope = array(), $scope_seperator = '+'){
-		$scope[] = urlencode('https://www.googleapis.com/auth/userinfo.email');
-		$scope[] = urlencode('https://www.googleapis.com/auth/userinfo.profile');
 		parent::authorize($scope, $scope_seperator, '&response_type=code');
 	}
 	
